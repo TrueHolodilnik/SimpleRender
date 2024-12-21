@@ -1,8 +1,6 @@
 # SimpleRender
 
 OpenGL based render
-For GLTF mesh loading a tinyGLTF library was used: https://github.com/syoyo/tinygltf
-
 - Deffered shading, GBuffer
 - 2 render passes: base and lighting
 - BRDF specular
@@ -15,3 +13,6 @@ For GLTF mesh loading a tinyGLTF library was used: https://github.com/syoyo/tiny
 
 Demo:
 https://youtu.be/Gtr74yceEEI
+
+For GLTF mesh loading a tinyGLTF library was used: https://github.com/syoyo/tinygltf
+Mesh: https://sketchfab.com/3d-models/uaz-452-buhanka-8b37ef5dde0d45bc8d0420ccbfeccfc3
