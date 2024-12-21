@@ -30,3 +30,15 @@
 *.exe
 *.out
 *.app
+/.vs
+Render.filters
+Render.sln
+Render.v11.suo
+Render.vcxproj
+Render.vcxproj.filters
+Render.vcxproj.user
+/Render/Debug
+/Render/x64
+/tinyGLTF
+/x64
+/Include

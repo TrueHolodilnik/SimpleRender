@@ -1,0 +1,22 @@
+#version 140 // compatible with with any GLSL shadern
+precision highp float; // high precision float operations for PC
+
+in vec4 inPosition;
+in vec2 inTexCoord;
+in vec3 inNormal;
+
+out vec2 TexCoord;
+out vec3 Normal;
+out vec3 Position;
+
+uniform mat4 uMVPMatrix;
+uniform mat4 uModelViewMatrix;
+
+void main()
+{
+	gl_Position = uMVPMatrix * inPosition;
+	TexCoord = inTexCoord;
+	Normal = normalize(mat3(uModelViewMatrix)*inNormal);
+	Position = vec4(uModelViewMatrix*inPosition).xyz;
+
+}

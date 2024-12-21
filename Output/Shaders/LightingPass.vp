@@ -1,0 +1,15 @@
+// LightingPass.vp'24
+#version 140 // compatible with any GLSL shader
+precision highp float; // high precision float operations for PC
+
+in vec4 inPosition; // vertex position
+in vec2 inTexcoord2; // texture coordinates
+
+out vec2 Texcoord2;
+
+void main()
+{
+	gl_Position = inPosition; // copy position
+
+	Texcoord2 = inTexcoord2; // copy texture coordinates
+}
