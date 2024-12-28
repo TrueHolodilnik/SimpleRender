@@ -9,12 +9,10 @@
 #include "..\\MatrixAlgebra.h"
 #include "..\\Utils\\Utils.h"
 #include "..\\tinyGLTF\\tiny_gltf.h"
+#include "..\\Configs\\KeysConfiguration.h"
 
 static unsigned int GQuadVAO = 0;
 static unsigned int GPlaneVAO = 0;
-
-void drawMesh(std::map<int, GLuint>& vbos, tinygltf::Model& model, tinygltf::Mesh& mesh);
-void drawModelNodes(const std::pair<GLuint, std::map<int, GLuint>>& vaoAndEbos, tinygltf::Model& model, tinygltf::Node& node);
 
 class RenderClass {
 
@@ -52,13 +50,21 @@ public:
 
 	void drawModel(const std::pair<GLuint, std::map<int, GLuint>>& vaoAndEbos, tinygltf::Model& model);
 
-	// TinyGLTF mesh loading
+	// Load and draw function based on tinyGLTF library
+	// TODO: separate to different class
 	void bindMesh(std::map<int, GLuint>& vbos, tinygltf::Model& model, tinygltf::Mesh& mesh);
 	void bindModelNodes(std::map<int, GLuint>& vbos, tinygltf::Model& model, tinygltf::Node& node);
 	std::pair<GLuint, std::map<int, GLuint>> bindModel(tinygltf::Model& model);
 	bool loadModel(tinygltf::Model& model, const char* filename);
+	void drawMesh(const std::map<int, GLuint>& vbos, tinygltf::Model& model, tinygltf::Mesh& mesh);
+	void drawModelNodes(const std::pair<GLuint, std::map<int, GLuint>>& vaoAndEbos, tinygltf::Model& model, tinygltf::Node& node);
 
+	void ResetOGLStateDefault();
+	void BindShaderUniformAdresses();
+	void CreateGBuffer();
 	void PrepareScene();
+	void CreateGBRenderTargets();
+	void BindTextures();
 
 	static GLuint CreateRectTexture(const size_t, const size_t, const GLenum, const GLenum, const GLenum);
 	static GLuint CreateRenderTarget(const std::vector<std::pair<GLenum, GLuint>>);

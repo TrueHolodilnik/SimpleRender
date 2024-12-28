@@ -31,6 +31,7 @@ void main()
 	vec3 normalMap = texture(uNormalTexture, TexCoord).rgb;
     vec3 normal = normalize(normalMap * 2.0 - 1.0);
 	
+	// Prevent combined normal from being close to 0 - it causes artifacts
 	oNormal = vec4(normalize(Normal) - normal/1.1, PBR.r);
 	oPosition = vec4(Position, PBR.b);
 }

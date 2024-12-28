@@ -2,6 +2,8 @@
 #version 140 // compatible with any GLSL shader
 precision highp float; // high precision float operations for PC
 
+#define PI 3.14159265359
+
 in vec2 Texcoord2;
 
 out vec4 oColor;
@@ -54,10 +56,10 @@ vec3 ComputeColoredAO(float ao, vec3 albedo) {
 
 // SSDO - screen space directional occlusion
 float CalcSSDO(vec3 P, vec3 N) {
-	float SSAO_DEPTH_THRESHOLD = 2.5;
-	float SSDO_RADIUS = 2.01 ;
-	float SSDO_BLEND_FACTOR = 1;
-	float SSDO_SAMPLE = 8;
+	const float SSAO_DEPTH_THRESHOLD = 2.5;
+	const float SSDO_RADIUS = 2.01 ;
+	const float SSDO_BLEND_FACTOR = 1;
+	const float SSDO_SAMPLE = 8;
 	
 	vec3 hemisphere[10];
 	hemisphere[0] = vec3(-0.134, 0.044, -0.825);
@@ -102,9 +104,6 @@ void main()
 	vec4 normal = texture(uNormal, Texcoord2); //Alpha channel is metalness
 	vec4 position = texture(uPosition, Texcoord2);
 
-	// Compute SS colored AO
-	vec3 coloredAO = ComputeColoredAO(1 - CalcSSDO(position.rgb, normal.rgb), color.rgb);
-
 	// Light position update
 	vec3 lightDir = normalize(vec3(sin(uLightDistance)*5 -5.0f, 5.0f, cos(uLightDistance)*5) - position.rgb + 5.0f);
 	vec3 V = -normalize(position.rgb);
@@ -135,10 +134,13 @@ void main()
 		pow(
 			max( dot( reflection, V ), 0.f ),
 			clamp( F0 * (1.f - nDotL) / 2.f, 0.001f, 255.0f) + specExp + specExp*metalness 
-		) * (F0 + 2.f) * 1.f/(2.f*3.14159267);
+		) * (F0 + 2.f) * 1.f/(2.f*PI);
 
 	// Final light combine
-	oColor.rgb = diffuseTerm*color.rgb*occlusion*coloredAO + specularTerm*specularColor + inAmbient.a;
+	oColor.rgb = diffuseTerm*color.rgb*occlusion + specularTerm*specularColor + inAmbient.a;
+
+	// Compute SS colored AO
+	oColor.rgb *= ComputeColoredAO(1 - CalcSSDO(position.rgb, normal.rgb), color.rgb);
 
 	// Fog - simple depth based exponential fog
 	const vec4 fogColor = vec4(0.345098f,0.545098f,0.6627450f,1);

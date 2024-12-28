@@ -1,5 +1,6 @@
 #include "Application.h"
-#include "Configs//KeysConfiguration.h"
+#include "Configs\\KeysConfiguration.h"
+#include "Utils\\Utils.h"
 
 // WinApi window creation and handle
 LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam );
@@ -43,7 +44,7 @@ LRESULT CALLBACK WndProc( HWND      i_hWnd,
             return 0;
         }
     case WM_KEYUP: {                                                // User released any key
-            if( i_wParam == VK_ESCAPE ) PostQuitMessage(0);         // If key released by user was escape, tell application to quit
+            if( i_wParam == ButtonsDefinitions::QuitButton) PostQuitMessage(0);         // If key released by user was escape, tell application to quit
             break;
         }
     case WM_SYSCOMMAND: {                                           // Operating system messages

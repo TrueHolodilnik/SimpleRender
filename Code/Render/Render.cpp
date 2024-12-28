@@ -20,36 +20,19 @@ RenderClass::RenderClass(HDC* inDeviceContext, float* iWidth, float* iHeight) {
     GetPerspectiveProjectionMatrix(45.0f, 1.0f, 20.0f, AspectRatio, ProjectionMatrix);
 
     // Create shaders and program objects
-    if (!CreateShaders()) {
-		UtilsInstance->ErrorMessage("Shader Initialization Error", "Could not create shaders.", true);
-    }
+    if (!CreateShaders()) UtilsInstance->ErrorMessage("Shader Initialization Error", "Could not create shaders.", true);
 
-    // Set up default OpenGL state
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClearDepth(1.0f);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-
-    // Get uniform addresses of shader uniform parameters
-    Handlers->MVPMatrixHandle = glGetUniformLocation(RenderPassesV->BasePassProgram, "uMVPMatrix");
-    Handlers->MVMatrixHandle = glGetUniformLocation(RenderPassesV->BasePassProgram, "uModelViewMatrix");
-    Handlers->DiffuseTextureHandle = glGetUniformLocation(RenderPassesV->BasePassProgram, "uTexture");
-    Handlers->DiffuseNormalTextureHandle = glGetUniformLocation(RenderPassesV->BasePassProgram, "uNormalTexture");
-    Handlers->DiffusePBRTextureHandle = glGetUniformLocation(RenderPassesV->BasePassProgram, "uPBRTexture");
-    Handlers->ColorTextureHandle = glGetUniformLocation(RenderPassesV->LightingPassProgram, "uColor");
-    Handlers->NormalTextureHandle = glGetUniformLocation(RenderPassesV->LightingPassProgram, "uNormal");
-    Handlers->PositionTextureHandle = glGetUniformLocation(RenderPassesV->LightingPassProgram, "uPosition");
-    Handlers->LightDistanceHandle = glGetUniformLocation(RenderPassesV->LightingPassProgram, "uLightDistance");
-    Handlers->PMatrixHandle = glGetUniformLocation(RenderPassesV->LightingPassProgram, "uPMatrix");
-
+    // Create and configure render
+	BindShaderUniformAdresses();
+    CreateGBuffer();
 	PrepareScene();
+    BindTextures();
+	CreateGBRenderTargets();
 
     // Set viewport dimensions
     glViewport(0, 0, (int)Width, (int)Height);
 
-    // Fullscreen quad mesh
+    // Creatre fullscreen quad mesh
     CreateFullscreenQuad(*Width, *Height);
 
     // Disable vao, vbo and attributes
@@ -59,6 +42,7 @@ RenderClass::RenderClass(HDC* inDeviceContext, float* iWidth, float* iHeight) {
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(0);
 
+    // Initial first frame render
     Render();
 };
 
@@ -77,6 +61,7 @@ bool RenderClass::CreateShaders() {
     // Attach shaders to base pass program
     glAttachShader(RenderPassesV->BasePassProgram, vshader);
     glAttachShader(RenderPassesV->BasePassProgram, fshader);
+
     // Link base pass program
     glLinkProgram(RenderPassesV->BasePassProgram);
 
@@ -88,8 +73,7 @@ bool RenderClass::CreateShaders() {
         GLchar linking_info[1000];
         // Check what went wrong and display message box with information
         glGetProgramInfoLog(RenderPassesV->BasePassProgram, 1000, nullptr, linking_info);
-        UtilsInstance->ErrorMessage("Shader Initialization Error", linking_info);
-        return false;
+        UtilsInstance->ErrorMessage("Shader Initialization Error", linking_info, true);
     }
 
     // Bind streams of vertex data with proper shader attributes
@@ -126,8 +110,7 @@ bool RenderClass::CreateShaders() {
         GLchar linking_info[1000];
         // Check what went wrong and display message box with information
         glGetProgramInfoLog(RenderPassesV->LightingPassProgram, 1000, nullptr, linking_info);
-        UtilsInstance->ErrorMessage("Shader Initialization Error", linking_info);
-        return false;
+        UtilsInstance->ErrorMessage("Shader Initialization Error", linking_info, true);
     }
 
     // Bind streams of vertex data with proper shader attributes
@@ -140,6 +123,7 @@ bool RenderClass::CreateShaders() {
     return true;
 }
 
+// Destroy shaders for each created render pass
 void RenderClass::DestroyShaders() {
     glDeleteProgram(RenderPassesV->BasePassProgram);
     glDeleteProgram(RenderPassesV->LightingPassProgram);
@@ -177,6 +161,17 @@ GLuint RenderClass::CreateShader(const std::string i_Filename, const GLenum i_Ty
     return shader;
 }
 
+// Reset OpenGL to default state
+void RenderClass::ResetOGLStateDefault() {
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearDepth(1.0f);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+}
+
+// Main render runtime
 void RenderClass::Render() {
 
     // Update move variables
@@ -265,15 +260,11 @@ void RenderClass::Render() {
     // Disable VAO - it is always good to disable all OpenGL objects when they are not required
     glBindVertexArray( 0 );
 
-    //glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
-
     // Swap back and front buffers (SwapChain)
     SwapBuffers( *DeviceContext );
 }
-
-// Resize                                                                                                    
+                                                                                                 
 // Calculates aspect ratio and updates viewport size and fullscreen quad mesh                                
-//
 void RenderClass::Resize(const int i_Width, const int i_Height) {
     int w = i_Width;
     int h = i_Height;
@@ -289,23 +280,27 @@ void RenderClass::Resize(const int i_Width, const int i_Height) {
 
 // Handle key messages and update
 void RenderClass::UpdateParameters(WPARAM i_wParam, LPARAM i_lParam) {
-
+	// Switch for key messages by keys defined in KeysConfiguration.h
     switch (i_wParam) {
-        case VK_LEFT: {
+		// Rotate mesh to the left
+        case ButtonsDefinitions::ChangeMeshesRotationL: {
             Angle -= 1.0f;
             break;
         }
-        case VK_RIGHT: {
+        // Rotate mesh to the right
+        case ButtonsDefinitions::ChangeMeshesRotationR: {
             Angle += 1.0f;
             break;
         }
-        case VK_UP: {
+		// Move light source to the left
+        case ButtonsDefinitions::ChangeLightPositionL: {
             glUseProgram(RenderPassesV->LightingPassProgram);
             LightDistance -= 0.1f;
             glUniform1fv(Handlers->LightDistanceHandle, 1, &LightDistance);
             break;
         }
-        case VK_DOWN: {
+		// Move light source to the right
+        case ButtonsDefinitions::ChangeLightPositionR: {
             glUseProgram(RenderPassesV->LightingPassProgram);
             LightDistance += 0.1f;
             glUniform1fv(Handlers->LightDistanceHandle, 1, &LightDistance);
@@ -314,22 +309,23 @@ void RenderClass::UpdateParameters(WPARAM i_wParam, LPARAM i_lParam) {
     }
 }
 
-// Scene setup
-void RenderClass::PrepareScene() {
+// Get uniform addresses of shader uniform parameters
+void RenderClass::BindShaderUniformAdresses() {
+    Handlers->MVPMatrixHandle = glGetUniformLocation(RenderPassesV->BasePassProgram, "uMVPMatrix");
+    Handlers->MVMatrixHandle = glGetUniformLocation(RenderPassesV->BasePassProgram, "uModelViewMatrix");
+    Handlers->DiffuseTextureHandle = glGetUniformLocation(RenderPassesV->BasePassProgram, "uTexture");
+    Handlers->DiffuseNormalTextureHandle = glGetUniformLocation(RenderPassesV->BasePassProgram, "uNormalTexture");
+    Handlers->DiffusePBRTextureHandle = glGetUniformLocation(RenderPassesV->BasePassProgram, "uPBRTexture");
+    Handlers->ColorTextureHandle = glGetUniformLocation(RenderPassesV->LightingPassProgram, "uColor");
+    Handlers->NormalTextureHandle = glGetUniformLocation(RenderPassesV->LightingPassProgram, "uNormal");
+    Handlers->PositionTextureHandle = glGetUniformLocation(RenderPassesV->LightingPassProgram, "uPosition");
+    Handlers->LightDistanceHandle = glGetUniformLocation(RenderPassesV->LightingPassProgram, "uLightDistance");
+    Handlers->PMatrixHandle = glGetUniformLocation(RenderPassesV->LightingPassProgram, "uPMatrix");
+}
 
-    // Create G-Buffer for all data stored in base pass
-    Textures->ColorTexture = CreateRectTexture((size_t)*Width, (size_t)*Height, GL_RGBA, GL_RGBA16F, GL_HALF_FLOAT);
-    Textures->NormalTexture = CreateRectTexture((size_t)*Width, (size_t)*Height, GL_RGB, GL_RGBA16F, GL_HALF_FLOAT);
-    Textures->PositionTexture = CreateRectTexture((size_t)*Width, (size_t)*Height, GL_RGB, GL_RGBA16F, GL_HALF_FLOAT);
-    Textures->DepthTexture = CreateRectTexture((size_t)*Width, (size_t)*Height, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT24, GL_UNSIGNED_INT);
+// Activate and bind textures, configure handles for render passes and deactivate any texture units
+void RenderClass::BindTextures() {
 
-    if (!loadModel(model, "../Resources/scene.gltf")) {
-		UtilsInstance->ErrorMessage("Model Loading Error", "Could not load model", true);
-    }
-
-    vaoAndEbos = bindModel(model);
-
-    // Activate and bind textures
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, Textures->DiffuseTexture);
     glActiveTexture(GL_TEXTURE1);
@@ -359,8 +355,28 @@ void RenderClass::PrepareScene() {
     glActiveTexture(GL_TEXTURE8);
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindTexture(GL_TEXTURE_RECTANGLE, 0);
+}
 
-    // Create render targets for each part of G-Buffer
+// Create G-Buffer for all data stored in base pass
+void RenderClass::CreateGBuffer() {
+    Textures->ColorTexture = CreateRectTexture((size_t)*Width, (size_t)*Height, GL_RGBA, GL_RGBA16F, GL_HALF_FLOAT);
+    Textures->NormalTexture = CreateRectTexture((size_t)*Width, (size_t)*Height, GL_RGB, GL_RGBA16F, GL_HALF_FLOAT);
+    Textures->PositionTexture = CreateRectTexture((size_t)*Width, (size_t)*Height, GL_RGB, GL_RGBA16F, GL_HALF_FLOAT);
+    Textures->DepthTexture = CreateRectTexture((size_t)*Width, (size_t)*Height, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT24, GL_UNSIGNED_INT);
+}
+
+// Scene setup
+void RenderClass::PrepareScene() {
+
+    if (!loadModel(model, "../Resources/scene.gltf")) {
+		UtilsInstance->ErrorMessage("Model Loading Error", "Could not load model", true);
+    }
+
+    vaoAndEbos = bindModel(model);
+}
+
+// Create render targets for each part of G-Buffer
+void RenderClass::CreateGBRenderTargets() {
     std::pair<GLenum, GLuint> pairs[] = {
         std::make_pair(GL_COLOR_ATTACHMENT0, Textures->ColorTexture),
         std::make_pair(GL_COLOR_ATTACHMENT1, Textures->NormalTexture),
@@ -372,7 +388,6 @@ void RenderClass::PrepareScene() {
 
 // Rectangle texture creation
 // Paremeters: Width, Heigh, Used channels (RGB/RGBA/...), Channels format (RGB16/...), Type (half/float/int/...)
-//
 GLuint RenderClass::CreateRectTexture(const size_t i_Width, const size_t i_Height, const GLenum i_Channels, const GLenum i_Format, const GLenum i_ChannelDataType) {
     GLuint texture;
 
@@ -398,7 +413,6 @@ GLuint RenderClass::CreateRectTexture(const size_t i_Width, const size_t i_Heigh
 // CreateRenderTarget                                                                                        
 // Creates framebuffer object with attachments provided through vector of pairs:                             
 // type and number of attachment - texture ID that should be attached to it                                  
-//
 GLuint RenderClass::CreateRenderTarget(const std::vector<std::pair<GLenum, GLuint>> i_Textures) {
 
     GLuint framebuffer;
@@ -531,31 +545,11 @@ void RenderClass::bindMesh(std::map<int, GLuint>& vbos, tinygltf::Model& model, 
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);         // Repeat X texture coordinates around object
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);         // Repeat Y texture coordinates around object
         
-                GLenum format = GL_RGBA;
-        
-                if (image.component == 1) {
-                    format = GL_RED;
-                }
-                else if (image.component == 2) {
-                    format = GL_RG;
-                }
-                else if (image.component == 3) {
-                    format = GL_RGB;
-                }
-                else {
-                    // ???
-                }
-        
+				const GLenum numToFormat[] = { GL_RGBA, GL_RED, GL_RG, GL_RGB, GL_RGBA };
+                GLenum format = numToFormat[image.component];
+                
                 GLenum type = GL_UNSIGNED_BYTE;
-                if (image.bits == 8) {
-                    // ok
-                }
-                else if (image.bits == 16) {
-                    type = GL_UNSIGNED_SHORT;
-                }
-                else {
-                    // ???
-                }       
+                if (image.bits == 16) type = GL_UNSIGNED_SHORT;    
         
                 // Fill texture with data loaded from file
                 glTexImage2D(GL_TEXTURE_2D,        // 2D texture
@@ -613,18 +607,18 @@ std::pair<GLuint, std::map<int, GLuint>> RenderClass::bindModel(tinygltf::Model&
 
     return { vao, vbos };
 }
-void drawMesh(const std::map<int, GLuint>& vbos, tinygltf::Model& model, tinygltf::Mesh& mesh) {
+
+// Draw mesh (per each primitive)
+void RenderClass::drawMesh(const std::map<int, GLuint>& vbos, tinygltf::Model& model, tinygltf::Mesh& mesh) {
     for (size_t i = 0; i < mesh.primitives.size(); ++i) {
         tinygltf::Primitive primitive = mesh.primitives[i];
         tinygltf::Accessor indexAccessor = model.accessors[primitive.indices];
-
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbos.at(indexAccessor.bufferView));
-
         glDrawElements(primitive.mode, indexAccessor.count, indexAccessor.componentType, BUFFER_OFFSET(indexAccessor.byteOffset));
     }
 }
-// recursively draw node and children nodes of model
-void drawModelNodes(const std::pair<GLuint, std::map<int, GLuint>>& vaoAndEbos, tinygltf::Model& model, tinygltf::Node& node) {
+// Recursively draw node and children nodes of model
+void RenderClass::drawModelNodes(const std::pair<GLuint, std::map<int, GLuint>>& vaoAndEbos, tinygltf::Model& model, tinygltf::Node& node) {
     if ((node.mesh >= 0) && (node.mesh < model.meshes.size())) {
         drawMesh(vaoAndEbos.second, model, model.meshes[node.mesh]);
     }
@@ -632,6 +626,8 @@ void drawModelNodes(const std::pair<GLuint, std::map<int, GLuint>>& vaoAndEbos, 
         drawModelNodes(vaoAndEbos, model, model.nodes[node.children[i]]);
     }
 }
+
+// Draw model per each node
 void RenderClass::drawModel(const std::pair<GLuint, std::map<int, GLuint>>& vaoAndEbos, tinygltf::Model& model) {
     glBindVertexArray(vaoAndEbos.first);
 
@@ -649,6 +645,7 @@ void RenderClass::drawModel(const std::pair<GLuint, std::map<int, GLuint>>& vaoA
     glBindVertexArray(0);
 }
 
+// Generic plane and quad data
 float plane_vertices[][3] = {
     { -10.0f, 0.0f, -10.0f },
     { -10.0f, 0.0f, 10.0f },
