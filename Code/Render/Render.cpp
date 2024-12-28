@@ -46,6 +46,22 @@ RenderClass::RenderClass(HDC* inDeviceContext, float* iWidth, float* iHeight) {
     Render();
 };
 
+RenderClass::~RenderClass() {
+
+	// Destroy shaders
+	DestroyShaders();
+
+	// Destroy textures
+	glDeleteTextures(1, &Textures->BasePassRT);
+	glDeleteTextures(1, &Textures->ColorTexture);
+	glDeleteTextures(1, &Textures->NormalTexture);
+	glDeleteTextures(1, &Textures->PositionTexture);
+	glDeleteTextures(1, &Textures->DepthTexture);
+
+	// Destroy geometry
+    DestroyGeometry();
+}
+
 // Creates shaders and program objects used for drawing
 bool RenderClass::CreateShaders() {
     GLuint vshader, fshader;

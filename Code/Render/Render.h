@@ -39,6 +39,7 @@ public:
 	std::pair<GLuint, std::map<int, GLuint>> vaoAndEbos;
 
 	RenderClass(HDC* inDeviceContext, float* iWidth, float* iHeight);
+	~RenderClass();
 
 	void Render();
 
