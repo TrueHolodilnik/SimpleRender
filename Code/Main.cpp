@@ -2,29 +2,21 @@
 #include "Configs\\KeysConfiguration.h"
 #include "Utils\\Utils.h"
 
+#define EXIT_CODE 0 // Exit code for application
+
 // WinApi window creation and handle
 LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam );
 
-static Application* app;
-
-int WINAPI WinMain(	HINSTANCE   i_Instance,
-                    HINSTANCE   i_PrevInstance,
-                    LPSTR       i_CmdLine,
-                    int         i_CmdShow ) {
-
-   
-    app = new Application(i_Instance, WndProc);
+std::unique_ptr<Application> app; // Main application
+int WINAPI WinMain(HINSTANCE i_Instance, HINSTANCE i_PrevInstance, LPSTR i_CmdLine, int i_CmdShow ) {
+  
+	app.reset(new Application(i_Instance, WndProc)); // Create application instance updating smart pointer
     app->Run();
-
-    delete(app);
 
     return 0;
 }
 
-LRESULT CALLBACK WndProc( HWND      i_hWnd,
-                          UINT      i_Message,
-                          WPARAM    i_wParam,
-                          LPARAM    i_lParam ) {
+LRESULT CALLBACK WndProc(HWND i_hWnd, UINT i_Message, WPARAM i_wParam, LPARAM i_lParam ) {
     switch( i_Message ) {
     case WM_PAINT: {
             if (app) app->ForceRenderUpdate();
@@ -36,15 +28,15 @@ LRESULT CALLBACK WndProc( HWND      i_hWnd,
             return 0;
         }
     case WM_CLOSE: {                                                // Application is closing
-            PostQuitMessage( 0 );                                   // Send message about application exit
+            PostQuitMessage(EXIT_CODE);                                   // Send message about application exit
             return 0;
         }
     case WM_KEYDOWN: {                                              // User pressed any key
-             app->GetRender()->UpdateParameters(i_wParam, i_lParam);
+            app->GetRender()->UpdateParameters(i_wParam, i_lParam);
             return 0;
         }
     case WM_KEYUP: {                                                // User released any key
-            if( i_wParam == ButtonsDefinitions::QuitButton) PostQuitMessage(0);         // If key released by user was escape, tell application to quit
+            if( i_wParam == ButtonsDefinitions::QuitButton) PostQuitMessage(EXIT_CODE);         // If key released by user was escape, tell application to quit
             break;
         }
     case WM_SYSCOMMAND: {                                           // Operating system messages

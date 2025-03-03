@@ -21,14 +21,14 @@ Application::Application(HINSTANCE i_Instance, WNDPROC WndProc) {
 	// Initialize structure describing application class
 	WNDCLASSEX WindowClassEX;
 	WindowClassEX.cbSize = sizeof(WNDCLASSEX);
-	WindowClassEX.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+	WindowClassEX.style = WindowStyle;
 	WindowClassEX.hInstance = i_Instance;
 	WindowClassEX.lpfnWndProc = WndProc;
 	WindowClassEX.cbClsExtra = 0;
 	WindowClassEX.cbWndExtra = 0;
 	WindowClassEX.hIcon = nullptr;
 	WindowClassEX.hIconSm = nullptr;
-	WindowClassEX.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	WindowClassEX.hCursor = LoadWindowCursor;
 	WindowClassEX.hbrBackground = nullptr;
 	WindowClassEX.lpszMenuName = nullptr;
 	WindowClassEX.lpszClassName = AppName;
@@ -74,14 +74,11 @@ Application::Application(HINSTANCE i_Instance, WNDPROC WndProc) {
 		UtilsInstance->ErrorMessage("Application Creation Error", "Could not create application.", true);
 	}
 
-	Render = new RenderClass(&GDeviceContext, &GWidth, &GHeight);
+	Render.reset(new RenderClass(&GDeviceContext, &GWidth, &GHeight));
 
 };
 
 Application::~Application() {
-
-	// Free memory
-	delete(Render);
 
 	// Destroy OpenGL rendering context
 	DestroyOpenGLContext(GWindowHandle, GDeviceContext, GRenderingContext);

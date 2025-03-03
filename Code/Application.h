@@ -5,25 +5,34 @@
 #include "Render\\Render.h"
 #include "Utils\\Utils.h"
 
+// Application predifinitions
+#define ApplicationName "Some simple render"
+#define DefaultWindowHeight 1920
+#define DefaultWindowWidth 1080
+// Application window predifinitions
+#define WindowStyle CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+#define LoadWindowCursor LoadCursor(nullptr, IDC_HAND)
+
 class Application {
 
 private:
-	// Create render
-	RenderClass* Render;
+
+	// Main render
+	std::unique_ptr<RenderClass>	Render;
 
 	HWND            GWindowHandle;                          // Handle to window
 	HDC             GDeviceContext;                         // Operating system's device context used for drawing in a window
 	HGLRC           GRenderingContext;                      // Rendering context for OpenGL
 	HINSTANCE		ApplicationInstance;
 
-	float           GWidth = 1920;                                 // Window's width
-	float           GHeight = 1080;                                // Window's height
+	float           GWidth = DefaultWindowHeight;                                 // Window's width
+	float           GHeight = DefaultWindowWidth;                                // Window's height
 
 	bool			isActive = true;
 
-	const char*     AppName = "Some simple render";
+	const char*     AppName = ApplicationName;
 
-	// OpenGL
+	// OpenGL extensions
 	bool            ARB_extensions_string_present;          // Extension indicating that all extensions can be check
 	bool            ARB_pixel_format_present;               // Extension that allows setting pixel format with more flexible functions
 	bool            ARB_create_context_present;             // Extension that allows creating rendering context with more flexible functions
@@ -54,7 +63,7 @@ public:
 
 
 	RenderClass* GetRender() {
-		return Render;
+		return Render.get();
 	}
 
 	float* GetGWidth() {
