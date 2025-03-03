@@ -17,7 +17,7 @@ RenderClass::RenderClass(HDC* inDeviceContext, float* iWidth, float* iHeight) {
 
     // Get perspective projection matrix
     float AspectRatio = (*Width) / (*Height);
-    GetPerspectiveProjectionMatrix(45.0f, 1.0f, 20.0f, AspectRatio, ProjectionMatrix);
+    GetPerspectiveProjectionMatrix(DefaultFOV, DefaultNearClipPlane, DefaultFarClipPlane, AspectRatio, ProjectionMatrix);
 
     // Create shaders and program objects
     if (!CreateShaders()) UtilsInstance->ErrorMessage("Shader Initialization Error", "Could not create shaders.", true);
@@ -81,16 +81,8 @@ bool RenderClass::CreateShaders() {
     // Link base pass program
     glLinkProgram(RenderPassesV->BasePassProgram);
 
-    GLint status;
-
     // Check linking status
-    glGetProgramiv(RenderPassesV->BasePassProgram, GL_LINK_STATUS, &status);
-    if (status == GL_FALSE) {
-        GLchar linking_info[1000];
-        // Check what went wrong and display message box with information
-        glGetProgramInfoLog(RenderPassesV->BasePassProgram, 1000, nullptr, linking_info);
-        UtilsInstance->ErrorMessage("Shader Initialization Error", linking_info, true);
-    }
+    UtilsInstance->CheckLinkingStatus(RenderPassesV->BasePassProgram);
 
     // Bind streams of vertex data with proper shader attributes
     glBindAttribLocation(RenderPassesV->BasePassProgram, 0, "inPosition");
@@ -121,14 +113,8 @@ bool RenderClass::CreateShaders() {
     glLinkProgram(RenderPassesV->LightingPassProgram);
 
     // Check linking status
-    glGetProgramiv(RenderPassesV->LightingPassProgram, GL_LINK_STATUS, &status);
-    if (status == GL_FALSE) {
-        GLchar linking_info[1000];
-        // Check what went wrong and display message box with information
-        glGetProgramInfoLog(RenderPassesV->LightingPassProgram, 1000, nullptr, linking_info);
-        UtilsInstance->ErrorMessage("Shader Initialization Error", linking_info, true);
-    }
-
+    UtilsInstance->CheckLinkingStatus(RenderPassesV->LightingPassProgram);
+    
     // Bind streams of vertex data with proper shader attributes
     glBindAttribLocation(RenderPassesV->LightingPassProgram, 0, "inPosition"); // 0-th
     glBindAttribLocation(RenderPassesV->LightingPassProgram, 1, "inTexcoord"); // 1-st

@@ -90,6 +90,18 @@ public:
         return address;
     }
 
+	void CheckLinkingStatus(GLuint i_Program) {
+		GLint status;
+		// Check linking status
+		glGetProgramiv(i_Program, GL_LINK_STATUS, &status);
+		if (status == GL_FALSE) {
+			GLchar linking_info[1000];
+			// Check what went wrong and display message box with information
+			glGetProgramInfoLog(i_Program, 1000, nullptr, linking_info);
+			this->ErrorMessage("Shader Initialization Error", linking_info, true);
+		}
+	}
+    
 };
 
 static Utils* UtilsInstance = &(Utils::instance());

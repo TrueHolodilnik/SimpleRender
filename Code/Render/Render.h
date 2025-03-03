@@ -14,6 +14,11 @@
 static unsigned int GQuadVAO = 0;
 static unsigned int GPlaneVAO = 0;
 
+//Render predifinitions
+#define DefaultFOV 45.0f
+#define DefaultNearClipPlane 1.0f
+#define DefaultFarClipPlane 20.0f
+
 class RenderClass {
 
 private:
@@ -31,9 +36,9 @@ private:
 
 public:
 
-	GLHandlers* Handlers = new GLHandlers();
-	GLTextures* Textures = new GLTextures();
-	RenderPasses* RenderPassesV = new RenderPasses();
+    std::unique_ptr<GLHandlers> Handlers = std::make_unique<GLHandlers>();
+	std::unique_ptr<GLTextures> Textures = std::make_unique<GLTextures>();
+	std::unique_ptr<RenderPasses> RenderPassesV = std::make_unique<RenderPasses>();
 
 	tinygltf::Model model;
 	std::pair<GLuint, std::map<int, GLuint>> vaoAndEbos;
