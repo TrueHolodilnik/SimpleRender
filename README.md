@@ -10,6 +10,7 @@ OpenGL based render
 - Pseudo PBR
 
 ![image](https://github.com/user-attachments/assets/0859df44-45ca-4dc6-9793-76743c208faf)
+![renderdemo](https://github.com/user-attachments/assets/326e1894-09bf-4075-95fb-266cabe23681)
 
 Demo:
 https://youtu.be/Gtr74yceEEI
